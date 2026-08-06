@@ -1,20 +1,26 @@
 # @metag/mcp
 
-把一句话变成一支片子，然后**交给人去剪**。
+Turn one sentence into a film, then **hand it to a person to cut**.
 
-METAG 的 MCP 服务器。生成走我们自研的引擎（单镜约 3 秒画面，成本比调用同类
-API 低一个数量级），剪辑走一个真实的时间线 —— 而这两件事之间是通的：
-agent 生成的每一镜都记得自己是怎么来的，人在时间线上右键就能把某一镜重拍掉。
+METAG's MCP server. Generation runs on our own engine (about 3 seconds of
+footage per shot, an order of magnitude cheaper than calling a comparable
+API); editing happens on a real timeline — and the two are connected: every
+shot the agent generates remembers how it was made, so a person can
+right-click on the timeline and re-shoot just that shot.
 
-## 装
+[中文说明](./README.zh-CN.md)
 
-现在就能用（包托管在我们自己的 CDN 上，不需要 npm 账号）：
+## Install
+
+Works today — the package is hosted on our own CDN, no npm account needed:
 
 ```bash
 # Claude Code
 claude mcp add metag -- npx -y https://s3.metag.ai/metag/metag/cli/metag-mcp-latest.tgz
+```
 
-# 其它 MCP 客户端（Claude Desktop / Cursor / Codex …）
+```jsonc
+// Other MCP clients (Claude Desktop / Cursor / Codex …)
 {
   "mcpServers": {
     "metag": {
@@ -25,43 +31,52 @@ claude mcp add metag -- npx -y https://s3.metag.ai/metag/metag/cli/metag-mcp-lat
 }
 ```
 
-想钉死版本就把 `latest` 换成具体版本号，例如 `metag-mcp-0.1.0.tgz` ——
-那个地址是不可变的，`latest` 会跟着更新走。
+To pin a version, replace `latest` with a specific one, e.g.
+`metag-mcp-0.1.0.tgz` — that URL is immutable, while `latest` follows updates.
 
-发布到 npm 之后会变成 `npx -y @metag/mcp`，上面的地址继续可用。
+Once published to npm this becomes `npx -y @metag/mcp`; the URL above keeps
+working either way.
 
-**不需要先去弄 API key。** 第一次调用时会弹浏览器登录，token 存在
-`~/.metag/token`（0600），之后不再打扰你。
+**No API key to obtain first.** The first call opens a browser to sign in and
+stores the token at `~/.metag/token` (mode 0600). You are not asked again.
 
-## 它给 agent 什么
+## What the agent gets
 
-| 工具 | 什么时候用 |
+| Tool | When to use it |
 |---|---|
-| `make_film` | 用户要一支片子。**0 credits** —— 先出草案给人看，别直接花人家的钱 |
-| `open_in_studio` | 需要人的品味了（挑镜、调节奏、加自己的素材）。浏览器直接弹到那条时间线 |
-| `reshoot_shot` | 用户说"第三镜不对"。**只重拍那一镜**，别重生成整条片子把人剪好的东西扔掉 |
-| `list_takes` / `promote_take` | 看候选与质量分、定版。定版可逆，换下去的那条留着 |
-| `get_recipe` | 取逐镜提示词与旁白。和 Studio 导出的是同一份文档，可交给人也可喂回去重建 |
-| `generate_video` / `job_status` | 直接出片（**立即扣费**）与轮询 |
-| `run_director` / `approve_run` | 要先给人看报价时走这条 |
-| `edit_image` / `synthesize_speech` / `account_balance` | 改图、配音、查余额 |
+| `make_film` | The user wants a film. **0 credits** — produces a draft for a human to look at first, rather than spending their money straight away |
+| `open_in_studio` | Human taste is needed (pick takes, adjust pacing, add their own footage). Opens the browser directly on that timeline |
+| `reshoot_shot` | The user says "shot three is wrong". **Re-shoots only that shot** instead of regenerating the whole film and throwing away their edit |
+| `list_takes` / `promote_take` | Inspect alternates and quality scores, then commit one. Reversible — the replaced take is kept |
+| `get_recipe` | Fetch per-shot prompts and narration. Same document Studio exports; hand it to a person or feed it back to rebuild |
+| `generate_video` / `job_status` | Render directly (**charges immediately**) and poll |
+| `run_director` / `approve_run` | Use this path when the price must be shown to a human first |
+| `edit_image` / `synthesize_speech` / `account_balance` | Edit an image, synthesize speech, check the balance |
 
-完整参数见 <https://metag.ai/docs>。工具清单由服务端下发，这个包不维护副本 ——
-所以服务端加了工具，你不用升级它。
+Full parameters at <https://metag.ai/docs>. The tool list is served by the
+gateway and this package keeps no copy of it — when the server adds a tool,
+you do not need to upgrade.
 
-## 环境变量
+## Environment
 
-| 变量 | 作用 |
+| Variable | Effect |
 |---|---|
-| `METAG_TOKEN` | 直接给 token，跳过浏览器登录（CI 用） |
-| `METAG_BROWSER=0` | 不弹浏览器。工具照样返回链接，能力不减 |
-| `METAG_API` | 网关地址，默认 `https://api.metag.ai` |
+| `METAG_TOKEN` | Supply a token directly and skip the browser sign-in (for CI) |
+| `METAG_BROWSER=0` | Never open a browser. Tools still return links; nothing is lost |
+| `METAG_API` | Gateway address, defaults to `https://api.metag.ai` |
 
-## 计费
+## Billing
 
-草案免费。出片按镜计费，订阅用户用自研引擎不按条计费（有公平使用上限）。
-生成失败自动退还。价格以 <https://metag.ai/#pricing> 为准。
+Drafts are free. Rendering is billed per shot; subscribers are not billed per
+render on our own engine (fair-use limits apply). Failed generations are
+refunded automatically. Prices at <https://metag.ai/#pricing> are
+authoritative.
 
-## 许可
+## Source
 
-商用许可见 <https://metag.ai/terms-of-use.html>。
+This repository is published from the `mcp-bridge/` directory of the METAG
+monorepo with `git subtree push`, so the two never drift.
+
+## License
+
+Commercial license at <https://metag.ai/terms-of-use.html>.

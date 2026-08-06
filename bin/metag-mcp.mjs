@@ -1,19 +1,23 @@
 #!/usr/bin/env node
 /**
- * METAG 的 MCP 桥：stdio ↔ 网关。
+ * METAG's MCP bridge: stdio <-> gateway.
  *
- * ## 为什么需要它
+ * ## Why this exists
  *
- * 网关本来就说 MCP（Streamable HTTP + JSON-RPC）。但要用上它，人得自己填一段
- * 配置、自己弄一个 JWT —— 这个摩擦足以劝退绝大多数人，而 agent 产品真正的
- * 分发路径是「一行装上」。**装不上的能力等于没有。**
+ * The gateway already speaks MCP (Streamable HTTP + JSON-RPC). But using it
+ * means hand-writing a config block and minting a JWT yourself — friction
+ * that loses almost everyone, while the real distribution path for an agent
+ * product is "install it in one line". **A capability nobody can install is
+ * a capability nobody has.**
  *
- * 所以这里只做两件网关做不了的事：
- *   1. 讲 stdio（agent 客户端启动子进程，不是访问 URL）
- *   2. 替人拿到并保管 token —— 没有就弹浏览器，拿到存本机，用户全程不碰 JWT
+ * So this bridge does only the two things the gateway cannot:
+ *   1. Speak stdio (agent clients spawn a child process, they do not fetch a URL)
+ *   2. Obtain and keep the token — open a browser when there is none, store it
+ *      locally, and never make the user handle a JWT
  *
- * 工具清单**不在这里维护**。桥启动时向网关要一次，原样转发。
- * 在这里抄一份，就等着它和服务端走散 —— 那正是今天在文档页上踩过的坑。
+ * **The tool list is not maintained here.** The bridge asks the gateway once
+ * at start-up and forwards it verbatim. Keeping a copy here guarantees it
+ * drifts from the server — exactly the trap the docs page fell into.
  */
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
@@ -40,8 +44,9 @@ function readToken() {
 function saveToken(token) {
   mkdirSync(dirname(TOKEN_FILE), { recursive: true, mode: 0o700 });
   writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
-  // 文件已存在时 writeFileSync 的 mode 不生效，显式收一次权限：
-  // 这是一枚长期凭证，不该是同机其他用户可读的
+  // writeFileSync's mode is ignored when the file already exists, so tighten
+  // permissions explicitly: this is a long-lived credential and must not be
+  // readable by other users on the machine
   chmodSync(TOKEN_FILE, 0o600);
 }
 
@@ -52,11 +57,11 @@ function openBrowser(url) {
 }
 
 /**
- * 弹浏览器登录，等回跳。
+ * Open a browser to sign in and wait for the redirect.
  *
- * token 由网关放在 URL 的 **fragment** 里 —— fragment 不会随请求发到服务器，
- * 所以本地这一页要用一段脚本把它读出来再回传。多这一跳是为了让 token
- * 不进任何访问日志。
+ * The gateway returns the token in the URL **fragment** — a fragment is never
+ * sent to a server, so this local page reads it with a small script and posts
+ * it back. The extra hop exists so the token never lands in an access log.
  */
 async function login() {
   const server = createServer();
@@ -64,7 +69,7 @@ async function login() {
   const port = server.address().port;
 
   const done = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("登录超时")), 5 * 60_000);
+    const timer = setTimeout(() => reject(new Error("Sign-in timed out")), 5 * 60_000);
     server.on("request", (req, res) => {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
       if (url.pathname === "/token") {
@@ -72,21 +77,21 @@ async function login() {
         res.writeHead(204).end();
         clearTimeout(timer);
         server.close();
-        token ? resolve(token) : reject(new Error("没有拿到 token"));
+        token ? resolve(token) : reject(new Error("No token was returned"));
         return;
       }
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(
         `<!doctype html><meta charset="utf-8"><title>METAG</title>
 <body style="font:15px system-ui;padding:3rem;max-width:32rem;margin:auto">
-<p id="m">正在完成登录…</p>
+<p id="m">Finishing sign-in…</p>
 <script>
   var t = new URLSearchParams(location.hash.slice(1)).get("token");
   if (t) {
     fetch("/token?t=" + encodeURIComponent(t)).then(function () {
-      document.getElementById("m").textContent = "已登录，可以关掉这个页面回到终端。";
+      document.getElementById("m").textContent = "Signed in. You can close this page and return to the terminal.";
     });
   } else {
-    document.getElementById("m").textContent = "登录没有完成，请回终端重试。";
+    document.getElementById("m").textContent = "Sign-in did not complete. Return to the terminal and try again.";
   }
 </script>`,
       );
@@ -94,20 +99,20 @@ async function login() {
   });
 
   const authUrl = `${API}/api/v1/auth/google/start?client=cli&port=${port}`;
-  process.stderr.write(`\n需要先登录 METAG。浏览器打不开的话，手动访问：\n${authUrl}\n\n`);
+  process.stderr.write(`\nSign in to METAG first. If the browser did not open, visit:\n${authUrl}\n\n`);
   openBrowser(authUrl);
   const token = await done;
   saveToken(token);
-  process.stderr.write("登录完成。\n");
+  process.stderr.write("Signed in.\n");
   return token;
 }
 
-// ── 转发 ───────────────────────────────────────────────────────────────────
+// ── Forwarding ─────────────────────────────────────────────────────────────
 
 let token = readToken();
 /**
- * 正在进行的登录。多条请求同时到达时不能各弹一个浏览器 ——
- * 实测两行输入就开了两个登录窗口、占了两个端口。
+ * The in-flight sign-in. Concurrent requests must not each open a browser —
+ * two lines of input were measured to open two sign-in windows on two ports.
  */
 let pendingLogin = null;
 
@@ -126,7 +131,7 @@ async function callGateway(body) {
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
-        // 网关按 Origin 判来源；CLI 没有浏览器 Origin，声明成自己
+        // The gateway keys on Origin; a CLI has no browser Origin, so declare our own
         origin: SITE,
       },
       body: JSON.stringify(body),
@@ -134,26 +139,30 @@ async function callGateway(body) {
 
   let res = await send();
   if (res.status === 401) {
-    // token 过期就重新登录再试一次。让用户自己去删 ~/.metag/token 是最差的设计。
+    // An expired token re-authenticates and retries once. Telling the user to
+    // delete ~/.metag/token themselves would be the worst possible design.
     token = await ensureLogin();
     res = await send();
   }
-  if (!res.ok) throw new Error(`网关返回 ${res.status}`);
+  if (!res.ok) throw new Error(`Gateway returned ${res.status}`);
   return res.json();
 }
 
 /**
- * 工具说"该给人看了"就弹浏览器。
+ * Open a browser when a tool says "a human should look at this now".
  *
- * 这是桥存在的第二个理由：**agent 没有屏幕，人有**。判断"这一步需要人的品味"
- * 是模型能做的，而把浏览器打开只有本机进程能做。
+ * This is the bridge's second reason to exist: **the agent has no screen, the
+ * person does.** Deciding that a step needs human taste is something the model
+ * can do; opening a browser is something only a local process can do.
  *
- * 认返回值里的标记，不认工具名 —— 认工具名意味着服务端加一个工具就要改一次桥，
- * 而桥是装在别人机器上、更新最慢的那一环。
+ * We key on a marker in the response, never on the tool name — keying on names
+ * would mean every new server-side tool requires a bridge update, and the
+ * bridge is the slowest-updating link, installed on other people's machines.
  */
 function maybeOpenBrowser(out) {
-  // 无头环境（CI、容器、远程 shell）里弹浏览器是骚扰而不是帮忙。
-  // 默认开着，因为桌面用户占绝大多数；关掉之后工具照样返回链接，能力不减。
+  // In headless environments (CI, containers, remote shells) opening a browser
+  // is harassment, not help. On by default because desktop users dominate;
+  // when off, tools still return links and nothing is lost.
   if (process.env.METAG_BROWSER === "0") return;
   const text = out?.result?.content?.[0]?.text;
   if (typeof text !== "string") return;
@@ -161,10 +170,10 @@ function maybeOpenBrowser(out) {
     const payload = JSON.parse(text);
     if (payload?.open_in_browser && typeof payload.url === "string") {
       openBrowser(payload.url);
-      process.stderr.write(`已在浏览器打开：${payload.url}\n`);
+      process.stderr.write(`Opened in your browser: ${payload.url}\n`);
     }
   } catch {
-    // 工具返回的不是 JSON，正常，忽略
+    // The tool returned something that is not JSON — normal, ignore
   }
 }
 
@@ -176,9 +185,9 @@ function write(msg) {
 
 const rl = createInterface({ input: process.stdin });
 /**
- * 还在飞的请求。stdin 关掉就直接退出会把它们一起杀掉 ——
- * 真实客户端一直开着 stdin 所以线上撞不到，但管道测试必然撞到，
- * 而一个测不了的东西等于没验过。
+ * Requests still in flight. Exiting the moment stdin closes would kill them —
+ * real clients hold stdin open so production never hits it, but a piped test
+ * always does, and something that cannot be tested has not been verified.
  */
 const inFlight = new Set();
 
@@ -188,9 +197,9 @@ rl.on("line", async (line) => {
   try {
     req = JSON.parse(line);
   } catch {
-    return; // 半行/噪声：不该让整座桥塌掉
+    return; // Partial line or noise: must not bring the whole bridge down
   }
-  // 通知没有 id，按 JSON-RPC 约定不能回
+  // Notifications carry no id; per JSON-RPC they must not be answered
   const isNotification = req.id === undefined || req.id === null;
   const work = (async () => {
     const out = await callGateway(req);

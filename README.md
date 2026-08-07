@@ -1,4 +1,4 @@
-# @metag/mcp
+# metag-mcp
 
 Turn one sentence into a film, then **hand it to a person to cut**.
 
@@ -12,30 +12,37 @@ right-click on the timeline and re-shoot just that shot.
 
 ## Install
 
-Works today — the package is hosted on our own CDN, no npm account needed:
+```bash
+npx metag-mcp install
+```
+
+That writes two things into the current project and touches nothing else:
+
+- `.mcp.json` — the MCP server entry (merged; other servers are left alone)
+- `.claude/skills/metag/SKILL.md` — when to use it, and the one rule that
+  matters: **draft free, charge only after the person has seen it**
+
+Restart your agent and ask it for a film.
+
+<details>
+<summary>By hand, or for clients without <code>.mcp.json</code></summary>
 
 ```bash
-# Claude Code
-claude mcp add metag -- npx -y https://s3.metag.ai/metag/metag/cli/metag-mcp-latest.tgz
+claude mcp add metag -- npx -y metag-mcp
 ```
 
 ```jsonc
-// Other MCP clients (Claude Desktop / Cursor / Codex …)
+// Claude Desktop / Cursor / Codex …
 {
   "mcpServers": {
-    "metag": {
-      "command": "npx",
-      "args": ["-y", "https://s3.metag.ai/metag/metag/cli/metag-mcp-latest.tgz"]
-    }
+    "metag": { "command": "npx", "args": ["-y", "metag-mcp"] }
   }
 }
 ```
 
-To pin a version, replace `latest` with a specific one, e.g.
-`metag-mcp-0.1.0.tgz` — that URL is immutable, while `latest` follows updates.
+To pin a version: `npx -y metag-mcp@0.2.0`.
 
-Once published to npm this becomes `npx -y @metag/mcp`; the URL above keeps
-working either way.
+</details>
 
 **No API key to obtain first.** The first call opens a browser to sign in and
 stores the token at `~/.metag/token` (mode 0600). You are not asked again.

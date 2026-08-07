@@ -1,4 +1,4 @@
-# @metag/mcp
+# metag-mcp
 
 把一句话变成一支片子，然后**交给人去剪**。
 
@@ -8,27 +8,37 @@ agent 生成的每一镜都记得自己是怎么来的，人在时间线上右�
 
 ## 装
 
-现在就能用（包托管在我们自己的 CDN 上，不需要 npm 账号）：
+```bash
+npx metag-mcp install
+```
+
+它只往当前项目写两样东西，别的一概不动：
+
+- `.mcp.json` —— MCP 服务器条目（合并写入，你已有的其它服务器不会被吃掉）
+- `.claude/skills/metag/SKILL.md` —— 什么时候用它，以及唯一那条规矩：
+  **草案免费，先给人看过再扣钱**
+
+重启 agent，然后跟它要一支片子。
+
+<details>
+<summary>手动装，或者客户端不认 <code>.mcp.json</code></summary>
 
 ```bash
-# Claude Code
-claude mcp add metag -- npx -y https://s3.metag.ai/metag/metag/cli/metag-mcp-latest.tgz
+claude mcp add metag -- npx -y metag-mcp
+```
 
-# 其它 MCP 客户端（Claude Desktop / Cursor / Codex …）
+```jsonc
+// Claude Desktop / Cursor / Codex …
 {
   "mcpServers": {
-    "metag": {
-      "command": "npx",
-      "args": ["-y", "https://s3.metag.ai/metag/metag/cli/metag-mcp-latest.tgz"]
-    }
+    "metag": { "command": "npx", "args": ["-y", "metag-mcp"] }
   }
 }
 ```
 
-想钉死版本就把 `latest` 换成具体版本号，例如 `metag-mcp-0.1.0.tgz` ——
-那个地址是不可变的，`latest` 会跟着更新走。
+想钉死版本：`npx -y metag-mcp@0.2.0`。
 
-发布到 npm 之后会变成 `npx -y @metag/mcp`，上面的地址继续可用。
+</details>
 
 **不需要先去弄 API key。** 第一次调用时会弹浏览器登录，token 存在
 `~/.metag/token`（0600），之后不再打扰你。

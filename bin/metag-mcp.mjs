@@ -98,7 +98,12 @@ async function login() {
     });
   });
 
-  const authUrl = `${API}/api/v1/auth/google/start?client=cli&port=${port}`;
+  // The route is `/api/v1/auth/{provider}` — one segment. This used to say
+  // `/auth/google/start`, which matches no route: **every fresh install got a
+  // 404 and could never sign in.** Nothing failed loudly on our side; the
+  // browser just showed "Not Found", so the bridge looked broken rather than
+  // misconfigured. Verified with `curl -o /dev/null -w '%{http_code}'`.
+  const authUrl = `${API}/api/v1/auth/google?client=cli&port=${port}`;
   process.stderr.write(`\nSign in to METAG first. If the browser did not open, visit:\n${authUrl}\n\n`);
   openBrowser(authUrl);
   const token = await done;
@@ -175,6 +180,126 @@ function maybeOpenBrowser(out) {
   } catch {
     // The tool returned something that is not JSON — normal, ignore
   }
+}
+
+// ── `npx metag-mcp install` ────────────────────────────────────────────────
+//
+// One command, because the alternative is a README asking people to hand-write
+// a JSON block into a file they have never opened. **A capability nobody can
+// install is a capability nobody has** — the same reason this bridge exists.
+//
+// It writes two files into the current project:
+//   .mcp.json                  the MCP server entry (Claude Code, Cursor, …)
+//   .claude/skills/metag/SKILL.md   when and how to use it
+//
+// Existing content is merged, never overwritten: a project's .mcp.json usually
+// already has other servers in it, and losing them would be a far worse bug
+// than not installing at all.
+
+const SKILL = `---
+name: metag
+description: Make a short film from a description — storyboard, narration, and rendered shots — and hand the editable timeline back to the person. Use when someone asks for a video, a promo, an explainer, or a scene, or wants to change a film that already exists.
+---
+
+# Making films with METAG
+
+## The one rule
+
+**Draft free, charge only after they have seen it.** \`make_film\` costs 0 credits
+and returns a watchable preview plus a Studio link. Never spend someone's
+credits on a guess about what they wanted.
+
+## The normal path
+
+1. \`make_film\` with their topic — one call, returns a preview and a link.
+2. Show them the link. Say what it cost (nothing) and what the full render costs.
+3. They react. Then either:
+   - happy → let them open Studio and finish it themselves (\`open_in_studio\`)
+   - one shot is wrong → \`reshoot_shot\` on that shot only, then \`list_takes\`
+     and \`promote_take\` to pick the better one
+   - the whole idea is wrong → \`make_film\` again. It was free.
+
+## Hand it to the person early
+
+The moment the work needs taste — choosing between takes, trimming, adding
+their own footage — call \`open_in_studio\` instead of guessing. The timeline
+arrives editable and every generated shot remembers how it was made, so they
+can re-shoot any single shot themselves.
+
+## Budget
+
+\`account_balance\` before anything that charges. \`run_director\` takes a
+\`budget_credits\` cap and stops rather than exceeding it — use it when they
+have named a budget. \`approve_run\` is the only call that starts charging.
+
+## Do not
+
+- Do not describe a film in prose when you could make one. The preview is free.
+- Do not re-render a whole film to fix one shot. \`reshoot_shot\` exists.
+- Do not invent tool names or parameters — ask the server for its tool list.
+`;
+
+function install() {
+  const cwd = process.cwd();
+  const changed = [];
+
+  // .mcp.json — merge, never clobber. Other servers in this file belong to
+  // the user, and eating them would be worse than not installing.
+  const mcpPath = join(cwd, ".mcp.json");
+  let cfg = {};
+  try {
+    cfg = JSON.parse(readFileSync(mcpPath, "utf8"));
+  } catch {
+    // Absent or unparseable. Unparseable is the dangerous case: refuse rather
+    // than replace a file we could not read.
+    try {
+      readFileSync(mcpPath, "utf8");
+      process.stderr.write(`${mcpPath} exists but is not valid JSON — fix it first, nothing was written.\n`);
+      process.exit(1);
+    } catch {
+      /* really absent, fine */
+    }
+  }
+  cfg.mcpServers ??= {};
+  const already = JSON.stringify(cfg.mcpServers.metag);
+  cfg.mcpServers.metag = { command: "npx", args: ["-y", "metag-mcp"] };
+  if (JSON.stringify(cfg.mcpServers.metag) !== already) {
+    writeFileSync(mcpPath, JSON.stringify(cfg, null, 2) + "\n");
+    changed.push(".mcp.json");
+  }
+
+  const skillPath = join(cwd, ".claude", "skills", "metag", "SKILL.md");
+  mkdirSync(dirname(skillPath), { recursive: true });
+  let prev = "";
+  try {
+    prev = readFileSync(skillPath, "utf8");
+  } catch {
+    /* absent */
+  }
+  if (prev !== SKILL) {
+    writeFileSync(skillPath, SKILL);
+    changed.push(".claude/skills/metag/SKILL.md");
+  }
+
+  process.stderr.write(
+    changed.length
+      ? `METAG installed.\n${changed.map((f) => `  wrote ${f}`).join("\n")}\n\nRestart your agent, then ask it for a film. The first call opens a browser to sign in.\n`
+      : "METAG was already installed here — nothing to change.\n",
+  );
+}
+
+if (process.argv[2] === "install") {
+  install();
+  process.exit(0);
+}
+if (process.argv[2] === "--help" || process.argv[2] === "-h") {
+  process.stderr.write(
+    "metag-mcp — METAG's MCP server for coding agents\n\n" +
+      "  npx metag-mcp install   add METAG to this project (.mcp.json + skill)\n" +
+      "  npx metag-mcp           run the bridge on stdio (agents do this for you)\n\n" +
+      "Docs: https://metag.ai/docs\n",
+  );
+  process.exit(0);
 }
 
 // ── stdio JSON-RPC ─────────────────────────────────────────────────────────

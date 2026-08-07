@@ -1,6 +1,6 @@
 {
-  "name": "@metag/mcp",
-  "version": "0.1.0",
+  "name": "metag-mcp",
+  "version": "0.2.0",
   "description": "METAG MCP server — turn a sentence into a film your agent can hand back to a person to cut.",
   "type": "module",
   "bin": {

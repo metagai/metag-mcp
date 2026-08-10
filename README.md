@@ -51,6 +51,7 @@ stores the token at `~/.metag/token` (mode 0600). You are not asked again.
 
 | Tool | When to use it |
 |---|---|
+| `quote_film` | The user asks for a video and hasn't decided yet. **0 credits, creates nothing** — returns the shot list and each tier's price in ~5s, so you can say what you'd shoot and what it costs before spending their time |
 | `make_film` | The user wants a film. **0 credits** — produces a draft for a human to look at first, rather than spending their money straight away |
 | `open_in_studio` | Human taste is needed (pick takes, adjust pacing, add their own footage). Opens the browser directly on that timeline |
 | `reshoot_shot` | The user says "shot three is wrong". **Re-shoots only that shot** instead of regenerating the whole film and throwing away their edit |

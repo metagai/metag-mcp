@@ -1,51 +1,62 @@
 # metag-mcp
 
-Turn one sentence into a film, then **hand it to a person to cut**.
+**Give your coding agent the ability to make a film — and to hand it to a
+person to cut.**
 
-METAG's MCP server. Generation runs on our own engine (about 3 seconds of
-footage per shot, an order of magnitude cheaper than calling a comparable
-API); editing happens on a real timeline — and the two are connected: every
-shot the agent generates remembers how it was made, so a person can
-right-click on the timeline and re-shoot just that shot.
+METAG's MCP server. Your agent describes a video; METAG storyboards it, writes
+and voices the narration, renders the shots, and returns a link to an editable
+timeline. Generation runs on our own engine (about three seconds of footage per
+shot, an order of magnitude cheaper than calling a comparable API). Every shot
+it generates remembers how it was made, so a person can right-click on the
+timeline and re-shoot just that one.
+
+For anyone using **Claude Code, Codex CLI, Kimi Code, Cursor or Gemini CLI**.
+Node 20 or newer. No API key to obtain first.
 
 [中文说明](./README.zh-CN.md)
 
 ## Install
 
 ```bash
-npx metag-mcp install
+npx -y github:metagai/metag-mcp install
 ```
 
 That writes two things into the current project and touches nothing else:
 
-- `.mcp.json` — the MCP server entry (merged; other servers are left alone)
+- `.mcp.json` — the MCP server entry, merged; other servers are left alone
 - `.claude/skills/metag/SKILL.md` — when to use it, and the one rule that
   matters: **draft free, charge only after the person has seen it**
 
 Restart your agent and ask it for a film.
 
-<details>
-<summary>By hand, or for clients without <code>.mcp.json</code></summary>
+Your agent's config file is not `.mcp.json`? Codex uses TOML, Kimi Code uses a
+different path, Gemini uses another one again — **[docs/setup.md](docs/setup.md)
+has the exact file, format and command for each**, plus a symptom-to-fix table.
+
+### Check it works
+
+This is the whole chain — process, sign-in, network, gateway — with your agent
+taken out of the picture. Come back to it whenever something breaks:
 
 ```bash
-claude mcp add metag -- npx -y metag-mcp
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | npx -y github:metagai/metag-mcp
 ```
 
-```jsonc
-// Claude Desktop / Cursor / Codex …
-{
-  "mcpServers": {
-    "metag": { "command": "npx", "args": ["-y", "metag-mcp"] }
-  }
-}
-```
+The first run opens a browser to sign in and stores the token at
+`~/.metag/token` (mode 0600). You are not asked again. A healthy run prints one
+line of JSON containing `"tools":[…]`.
 
-To pin a version: `npx -y metag-mcp@0.2.0`.
+## The first thing to ask for
 
-</details>
+> Quote a four-shot film about a cat learning to skateboard.
 
-**No API key to obtain first.** The first call opens a browser to sign in and
-stores the token at `~/.metag/token` (mode 0600). You are not asked again.
+`quote_film`: about five seconds, **0 credits, nothing is created**. You get the
+shot list it would shoot and what each tier costs. Then:
+
+> Make it.
+
+`make_film`: also **0 credits**. A watchable draft and a Studio link. Nobody is
+charged until a person has seen it and said yes.
 
 ## What the agent gets
 
@@ -62,15 +73,15 @@ stores the token at `~/.metag/token` (mode 0600). You are not asked again.
 | `edit_image` / `synthesize_speech` / `account_balance` | Edit an image, synthesize speech, check the balance |
 
 Full parameters at <https://metag.ai/docs>. The tool list is served by the
-gateway and this package keeps no copy of it — when the server adds a tool,
-you do not need to upgrade.
+gateway and this package keeps no copy of it — when the server adds a tool, you
+do not need to upgrade.
 
 ## Environment
 
 | Variable | Effect |
 |---|---|
-| `METAG_TOKEN` | Supply a token directly and skip the browser sign-in (for CI) |
-| `METAG_BROWSER=0` | Never open a browser. Tools still return links; nothing is lost |
+| `METAG_TOKEN` | Supply a token directly and skip the browser sign-in. For CI |
+| `METAG_BROWSER=0` | Never open a browser — neither at sign-in nor when a tool asks for a human. Tools still return links; nothing is lost |
 | `METAG_API` | Gateway address, defaults to `https://api.metag.ai` |
 
 ## Billing
@@ -80,6 +91,21 @@ render on our own engine (fair-use limits apply). Failed generations are
 refunded automatically. Prices at <https://metag.ai/#pricing> are
 authoritative.
 
+## Development
+
+```bash
+npm test
+```
+
+The suite drives the real binary over stdio against a stand-in gateway: the
+server starts, tools list, a tool call returns a result, and a rejected token
+produces one sentence rather than a stack trace and a five-minute hang. Two
+checks reach the network and skip when offline — one asks the live gateway
+whether an unauthenticated request is refused, the other asks whether the
+package spec `install` writes actually resolves.
+
+Changes that affect a running install are in [CHANGELOG.md](CHANGELOG.md).
+
 ## Source
 
 This repository is published from the `mcp-bridge/` directory of the METAG
@@ -87,4 +113,4 @@ monorepo with `git subtree push`, so the two never drift.
 
 ## License
 
-Commercial license at <https://metag.ai/terms-of-use.html>.
+Commercial. See [LICENSE](LICENSE) and <https://metag.ai/terms-of-use.html>.

@@ -1,0 +1,21 @@
+Copyright (c) 2026 METAG. All rights reserved.
+
+This package is a client for the METAG service. Permission is granted to
+download, install and run it for the purpose of using that service.
+
+Use of the METAG service — including everything this client generates — is
+governed by the METAG Terms of Use:
+
+    https://metag.ai/terms-of-use.html
+
+No other rights are granted. In particular, this package may not be
+redistributed in modified form, and no part of it may be used to build or
+operate a competing service, without written permission from METAG.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

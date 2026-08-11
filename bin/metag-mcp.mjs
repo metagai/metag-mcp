@@ -24,6 +24,7 @@ import { spawn } from "node:child_process";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 
 const API = process.env.METAG_API ?? "https://api.metag.ai";
@@ -64,6 +65,28 @@ function openBrowser(url) {
  * it back. The extra hop exists so the token never lands in an access log.
  */
 async function login() {
+  // Two ways sign-in must refuse to start rather than open a browser. Both were
+  // found by driving the bridge headless: it blocked for five minutes and then
+  // failed with a timeout, which tells the operator nothing about the cause.
+  //
+  // 1. A token was supplied and the gateway rejected it. The operator chose the
+  //    credential; the fix is to name the variable, not to override their choice.
+  if (process.env.METAG_TOKEN) {
+    throw new Error(
+      "METAG_TOKEN was rejected by the gateway (401). Check that the token is current, " +
+        "or unset METAG_TOKEN to sign in through a browser.",
+    );
+  }
+  // 2. METAG_BROWSER=0 is documented as "never open a browser". It used to
+  //    cover only the tool-result case, so the one flag a headless user could
+  //    reach did not cover the one moment they needed it to.
+  if (process.env.METAG_BROWSER === "0") {
+    throw new Error(
+      "Not signed in, and METAG_BROWSER=0 forbids opening a browser. Set METAG_TOKEN to a token " +
+        `from https://metag.ai, or run \`npx -y ${DEFAULT_PKG}\` once without METAG_BROWSER=0 to sign in.`,
+    );
+  }
+
   const server = createServer();
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
@@ -142,15 +165,57 @@ async function callGateway(body) {
       body: JSON.stringify(body),
     });
 
-  let res = await send();
+  // A gateway that cannot be reached is the single most common failure a new
+  // user hits — wrong METAG_API, no network, the service down. `fetch failed`
+  // is what Node hands us, and it names neither the address nor the cause, so
+  // it sends people reading their agent's logs instead of their config.
+  const trySend = async () => {
+    try {
+      return await send();
+    } catch (err) {
+      throw new Error(
+        `Cannot reach the METAG gateway at ${API} (${causeCode(err)}). ` +
+          "Check your connection, or METAG_API if you set it.",
+      );
+    }
+  };
+
+  let res = await trySend();
   if (res.status === 401) {
     // An expired token re-authenticates and retries once. Telling the user to
     // delete ~/.metag/token themselves would be the worst possible design.
     token = await ensureLogin();
-    res = await send();
+    res = await trySend();
   }
-  if (!res.ok) throw new Error(`Gateway returned ${res.status}`);
+  if (!res.ok) throw new Error(explainStatus(res.status));
   return res.json();
+}
+
+/**
+ * Dig the real reason out of a failed fetch.
+ *
+ * `err.message` is always the useless string `fetch failed`. The errno lives on
+ * `err.cause` — and when there is no errno at all (a malformed `METAG_API`
+ * fails with cause `bad port` and no code) the cause's message is still the
+ * only thing that names the actual problem.
+ */
+function causeCode(err) {
+  const cause = err?.cause;
+  return cause?.code ?? cause?.message ?? err?.message ?? "network error";
+}
+
+/**
+ * Turn an HTTP status into something the person reading their agent's output
+ * can act on. `Gateway returned 429` names a number; every one of these names
+ * a next step, which is the only part of an error message that has any value.
+ */
+function explainStatus(status) {
+  if (status === 402) return "Not enough credits. Top up at https://metag.ai/#pricing and try again.";
+  if (status === 429)
+    return "Too many requests — METAG limits MCP calls per minute. Wait a moment and retry.";
+  if (status === 403) return "That account is not allowed to use this tool.";
+  if (status >= 500) return `METAG is unavailable right now (HTTP ${status}). Try again shortly.`;
+  return `METAG rejected the request (HTTP ${status}).`;
 }
 
 /**
@@ -211,6 +276,9 @@ credits on a guess about what they wanted.
 
 ## The normal path
 
+0. Not sure they want it yet? \`quote_film\` — ~5s, **0 credits, creates
+   nothing**. It returns the shot list you would shoot and each tier's price,
+   so you can say what it costs before spending their time.
 1. \`make_film\` with their topic — one call, returns a preview and a link.
 2. Show them the link. Say what it cost (nothing) and what the full render costs.
 3. They react. Then either:
@@ -239,6 +307,21 @@ have named a budget. \`approve_run\` is the only call that starts charging.
 - Do not invent tool names or parameters — ask the server for its tool list.
 `;
 
+/**
+ * The package spec `install` writes into `.mcp.json`.
+ *
+ * This must be a spec that **resolves today**, not the one we intend to have.
+ * `metag-mcp` on npm currently 404s, so writing it produced a config file that
+ * could never start — the worst possible outcome for a one-command install,
+ * because it fails later, inside someone else's agent, with someone else's
+ * error message. The GitHub spec needs no registry.
+ *
+ * The day `npm publish` succeeds, change this to `metag-mcp` — the test
+ * "the package spec install writes actually resolves" checks whichever value
+ * is here, so a wrong one is caught rather than shipped.
+ */
+const DEFAULT_PKG = "github:metagai/metag-mcp";
+
 function install() {
   const cwd = process.cwd();
   const changed = [];
@@ -262,7 +345,7 @@ function install() {
   }
   cfg.mcpServers ??= {};
   const already = JSON.stringify(cfg.mcpServers.metag);
-  cfg.mcpServers.metag = { command: "npx", args: ["-y", "metag-mcp"] };
+  cfg.mcpServers.metag = { command: "npx", args: ["-y", DEFAULT_PKG] };
   if (JSON.stringify(cfg.mcpServers.metag) !== already) {
     writeFileSync(mcpPath, JSON.stringify(cfg, null, 2) + "\n");
     changed.push(".mcp.json");
@@ -295,10 +378,22 @@ if (process.argv[2] === "install") {
 if (process.argv[2] === "--help" || process.argv[2] === "-h") {
   process.stderr.write(
     "metag-mcp — METAG's MCP server for coding agents\n\n" +
-      "  npx metag-mcp install   add METAG to this project (.mcp.json + skill)\n" +
-      "  npx metag-mcp           run the bridge on stdio (agents do this for you)\n\n" +
+      `  npx -y ${DEFAULT_PKG} install   add METAG to this project (.mcp.json + skill)\n` +
+      `  npx -y ${DEFAULT_PKG}           run the bridge on stdio (agents do this for you)\n\n` +
+      "Environment:\n" +
+      "  METAG_TOKEN     use this token instead of signing in through a browser\n" +
+      "  METAG_BROWSER=0 never open a browser (headless / CI)\n" +
+      "  METAG_API       gateway address, default https://api.metag.ai\n\n" +
+      "Setup for Claude Code, Codex, Kimi Code and others: docs/setup.md\n" +
       "Docs: https://metag.ai/docs\n",
   );
+  process.exit(0);
+}
+// `--version` is the first thing anyone runs when a bug report says "which
+// version are you on". It used to answer with a silent stdio loop.
+if (process.argv[2] === "--version" || process.argv[2] === "-v") {
+  const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"));
+  process.stdout.write(`${pkg.version}\n`);
   process.exit(0);
 }
 

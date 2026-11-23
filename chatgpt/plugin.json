@@ -1,0 +1,106 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "fengsheng",
+  "version": "1.0.0",
+  "description": "Direct sound post-production for a chosen cut through a multi-turn brief.",
+  "author": {
+    "name": "METAG.AI",
+    "email": "support@metag-ai.com",
+    "url": "https://metag.ai"
+  },
+  "homepage": "https://metag-ai.com/",
+  "repository": "https://github.com/metagai/metag-mcp",
+  "keywords": [
+    "audio",
+    "sound design",
+    "film"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Fengsheng",
+        "shortDescription": "Direct sound for your cut",
+        "longDescription": "Build a sound brief for a video or audio clip. Specify which dialogue to preserve, where effects belong and when music should enter. Upload the cut you choose, revise the brief in conversation and confirm it before starting production. Retrieve the files delivered to your Fengsheng account.",
+        "developerName": "METAG.AI",
+        "category": "Productivity",
+        "capabilities": [
+          "Revise sound briefs",
+          "Queue a confirmed cut",
+          "Retrieve mixes and stems"
+        ],
+        "websiteURL": "https://metag-ai.com/",
+        "supportURL": "https://github.com/metagai/metag-mcp/blob/main/docs/fengsheng-support.md",
+        "privacyPolicyURL": "https://metag-ai.com/privacy.html",
+        "termsOfServiceURL": "https://metag.ai/terms-of-use.html",
+        "defaultPrompt": [
+          "Which sound styles can I use for this cut?",
+          "Keep the dialogue and the footsteps. Let the music enter after the last word.",
+          "Show me my current job status and the files that are ready."
+        ],
+        "brandColor": "#B4473A",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      },
+      "onboardingSkill": "./skills/sound-brief/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Discover styles",
+              "prompt": "Which sound styles are available for my cut?",
+              "tools_triggered": "list_presets",
+              "expected_behavior": "List the styles returned by Fengsheng. Create no draft or job."
+            },
+            {
+              "description": "Create a draft",
+              "prompt": "Start a brief for the sample clapper cut. Preserve the two claps at one and three seconds. Keep this as a draft.",
+              "tools_triggered": "create_conversation",
+              "expected_behavior": "Return a draft and revision. No production job is queued."
+            },
+            {
+              "description": "Revise the same cut",
+              "prompt": "Keep both impacts close and dry. Use no score. Keep the timing from my first instruction and wait for approval.",
+              "tools_triggered": "update_conversation",
+              "expected_behavior": "Update the same conversation with both cues and show the latest revision."
+            },
+            {
+              "description": "Approve an uploaded cut. Download the four-second clapper sample, upload it using the Fengsheng guide, and paste its reference in chat.",
+              "prompt": "I uploaded the clapper test clip with my Fengsheng account. Use the media reference I pasted. Read back the updated brief and ask me before starting. After I confirm that revision, start it.",
+              "tools_triggered": "update_conversation, finalize_conversation",
+              "expected_behavior": "Update the draft with the supplied reference, obtain approval for that revision, and return the real job ID. A retry returns the same job."
+            },
+            {
+              "description": "Retrieve the mix",
+              "prompt": "Check that job. If it is complete, give me the delivered files.",
+              "tools_triggered": "get_job, get_deliverables",
+              "expected_behavior": "Report the actual state. Retrieve only available files for this account after completion."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Missing media reference",
+              "prompt": "I pasted a video link from another site. Start production on that link now.",
+              "expected_behavior": "Explain how to upload the cut from the same account. Without a valid reference, keep the brief in draft."
+            },
+            {
+              "description": "Approval for an older revision",
+              "prompt": "I approved the previous version. Change the music now. I still need to listen before we start.",
+              "expected_behavior": "Save the revised brief and wait for a fresh approval. An attempt to finalize the previous revision returns a conflict."
+            },
+            {
+              "description": "Missing delivery",
+              "prompt": "My job is still queued. Give me the finished mix anyway.",
+              "expected_behavior": "Report the actual status and offer to check again. Return no download links while the job is running."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "The plugin does not sell products, process payments, or offer upgrades.",
+        "demo_recording_url": "https://raw.githubusercontent.com/metagai/metag-mcp/main/docs/review/fengsheng-walkthrough.mp4"
+      },
+      "publication": {
+        "release_notes": "First directory package for the hosted Fengsheng sound brief, approval and delivery workflow."
+      }
+    }
+  }
+}

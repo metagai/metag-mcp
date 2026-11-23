@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.metagai/fengsheng",
+  "name": "com.metag-ai/fengsheng",
   "title": "Fengsheng by METAG",
   "description": "Revise a sound brief in chat, confirm a cut for production, and retrieve its mix and stems.",
   "version": "1.0.0",

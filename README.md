@@ -17,6 +17,8 @@ Reload plugins or start a new session. Sign in to the services you use when prom
 
 **Other chat clients** with remote MCP and OAuth support can connect to `https://metag-ai.com/fengsheng/mcp` for sound production. That endpoint exposes the Fengsheng tools. The Claude Code package also includes the METAG film bridge. Workspace administrators may need to enable custom connections. [Setup guide](https://metag-ai.com/guide/) · [Privacy](https://metag-ai.com/privacy.html)
 
+Try the official MCP Registry entry or follow the private ChatGPT workspace setup. The guide includes a four-second test cut and a recording of its sound brief through delivery. [MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers/com.metag-ai%2Ffengsheng/versions/latest) · [ChatGPT setup and walkthrough](docs/fengsheng-support.md)
+
 ## METAG film bridge
 
 **Give your coding agent the ability to make a film — and to hand it to a

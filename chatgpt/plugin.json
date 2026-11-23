@@ -88,9 +88,9 @@
               "expected_behavior": "Save the revised brief and wait for a fresh approval. An attempt to finalize the previous revision returns a conflict."
             },
             {
-              "description": "Missing delivery",
-              "prompt": "My job is still queued. Give me the finished mix anyway.",
-              "expected_behavior": "Report the actual status and offer to check again. Return no download links while the job is running."
+              "description": "Mix held at the delivery quality check",
+              "prompt": "My mix failed the quality check and says retryable. Is it being fixed? Can I download it now?",
+              "expected_behavior": "Report the actual stage and provide the existing job page when available. If quality checks hold the mix, indicate delivery is pending. Give only actions supplied by the service. A retry flag alone provides no evidence of active repair. Return download links only after delivery."
             }
           ]
         },

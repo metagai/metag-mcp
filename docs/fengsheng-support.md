@@ -4,7 +4,7 @@ Email support@metag-ai.com for sign-in, production or delivery help. Include you
 
 To start from a film made with METAG, export the cut you want to use. In the Fengsheng upload guide, sign in with the same account you use for your chat connection. Open the media link from your saved brief and choose the clip there. Review the sound brief and choose **按此方案开始制作** to upload and start. The progress page opens automatically. Choose **仅保存素材** to keep editing in chat. The general upload page also offers a reference you can paste into chat. You choose when the sound brief goes into production. [Upload guide](https://metag-ai.com/guide/#chat-upload)
 
-If a queue request times out, ask about the same conversation before starting another one. On completion, request current download links for that job. You can contact support for a deletion request. [Privacy policy](https://metag-ai.com/privacy.html)
+If a queue request times out, ask about the same conversation before starting another one. The job page shows the current stage. If a mix is held in quality review, use the same page to check its status. For help, send the job reference to support@metag-ai.com. On completion, open the same page to play or download the output. You can contact support for a deletion request. [Privacy policy](https://metag-ai.com/privacy.html)
 
 ### Try it in ChatGPT
 

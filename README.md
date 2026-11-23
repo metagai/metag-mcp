@@ -1,5 +1,24 @@
 # metag-mcp
 
+## Fengsheng · 缝声
+
+Direct the sound of an existing cut in chat, or plan a film with METAG first. Keep one brief as you adjust the dialogue, Foley and score. When you approve the brief, Fengsheng queues the job and returns the available files once processing completes.
+
+**Install in Claude Code** with Node.js 20 or later. In Claude Code, run:
+
+```text
+/plugin marketplace add metagai/metag-mcp
+/plugin install fengsheng@metag-studio
+```
+
+Reload plugins or start a new session. Sign in to the services you use when prompted. Start with “Ask Fengsheng which sound styles are available.” For a project, try “Keep the dialogue and the footsteps at 0:04. Add music only after the last word. Show me the brief before starting.” 也可以用中文，比如“保留第 4 秒的脚步声，最后一句台词结束后才进配乐。先给我看需求单。”
+
+**Bring a cut from METAG** by exporting the cut you choose, uploading it under your Fengsheng account, and pasting the returned media reference into the conversation. Uploading and drafting are separate from confirming production. Film generation and sound production use separate approvals. [Upload your cut](https://metag-ai.com/guide/#chat-upload)
+
+**Other chat clients** with remote MCP and OAuth support can connect to `https://metag-ai.com/fengsheng/mcp` for sound production. That endpoint exposes the Fengsheng tools. The Claude Code package also includes the METAG film bridge. Workspace administrators may need to enable custom connections. [Setup guide](https://metag-ai.com/guide/) · [Privacy](https://metag-ai.com/privacy.html)
+
+## METAG film bridge
+
 **Give your coding agent the ability to make a film — and to hand it to a
 person to cut.**
 

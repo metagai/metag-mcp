@@ -1,0 +1,10 @@
+{
+  "name": "metag-studio",
+  "description": "Film and sound post-production tools from METAG.AI.",
+  "owner": {"name": "METAG.AI"},
+  "plugins": [{
+    "name": "fengsheng",
+    "source": "./",
+    "description": "Plan a film in METAG and direct its dialogue, effects and music with Fengsheng."
+  }]
+}

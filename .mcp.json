@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "fengsheng": {"type": "http", "url": "https://metag-ai.com/fengsheng/mcp"},
+    "metag": {"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/bin/metag-mcp.mjs"]}
+  }
+}

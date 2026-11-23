@@ -1,0 +1,7 @@
+{
+  "name": "fengsheng",
+  "version": "1.0.0",
+  "description": "Develop a sound brief over several turns, confirm the cut and retrieve its delivered mix. Includes METAG film tools.",
+  "author": {"name": "METAG.AI"},
+  "homepage": "https://metag-ai.com/guide/"
+}

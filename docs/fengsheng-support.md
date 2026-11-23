@@ -14,6 +14,10 @@ If a brief is waiting for a clip, ask Fengsheng to reopen the saved draft and sh
 
 For a repeatable example, download the four-second clapper cut and upload it in the guide. Ask to preserve the two impacts, select the unscored style, and review the brief before starting. After you approve it, ask for the job status and the delivered files. The walkthrough shows the source and the resulting mix from a production run with an internal test account. [Sample clip](./review/clapper.mp4) · [Service walkthrough](./review/fengsheng-walkthrough.mp4)
 
+### Directing the sound
+
+Put the sounds you want to keep, change or remove in the brief. Quote any fixed dialogue and include its cue time. If you want Fengsheng to choose something, name that part explicitly, for example “Choose the music for the last two seconds. Keep the footsteps and dialogue as recorded.” Review the current wording before starting. You can revise or withdraw that permission while the cut is a draft.
+
 ### Use another chat model
 
 If your chat app has no Fengsheng connection, open the review page, paste the agreed sound brief and choose your clip. **按此方案开始制作** opens the same production and delivery workflow. [Bring a brief from any chat](https://metag-ai.com/guide/?new=1#chat-upload)

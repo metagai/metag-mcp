@@ -3,11 +3,11 @@ export const soundBriefTool = {
   type: 'function',
   function: {
     name: 'save_sound_brief',
-    description: 'Save or revise the sound brief for this cut. Carry forward the cues already agreed. This prepares the review page. The owner starts production there.',
+    description: 'Save or revise the sound brief for this cut. Follow only the customer’s instructions. Carry forward unchanged wording, timings, exclusions and source-preservation instructions. Creative choices require the customer’s express permission within the stated scope. This prepares the review page. The owner starts production there.',
     parameters: {type:'object', properties:{
-      brief:{type:'string', description:'Complete sound direction in the customer’s language, including timings to preserve.'},
+      brief:{type:'string', maxLength:20000, description:'Full current brief in the customer’s language. Preserve exact lines and cues. Copy any permission for creative additions in the customer’s own words and keep its scope. Remove withdrawn permissions.'},
       style_preset:{type:'string', enum:['auto','cinematic_action','lyrical_chamber','hiphop_rock','comedy_plucked','cyber_breakbeat','unscored'],
-        description:'Choose unscored for no music. Omit on revision unless the style changes.'}
+        description:'Choose unscored for no music. Set other styles only when requested. A preset never expands the user’s instructions. Omit on revision unless the style changes.'}
     },required:['brief'],additionalProperties:false}
   }
 };

@@ -64,10 +64,10 @@
               "expected_behavior": "Update the same conversation with both cues and show the latest revision."
             },
             {
-              "description": "Approve an uploaded cut. Download the four-second clapper sample, upload it using the Fengsheng guide, and paste its reference in chat.",
-              "prompt": "I uploaded the clapper test clip with my Fengsheng account. Use the media reference I pasted. Read back the updated brief and ask me before starting. After I confirm that revision, start it.",
-              "tools_triggered": "update_conversation, finalize_conversation",
-              "expected_behavior": "Update the draft with the supplied reference, obtain approval for that revision, and return the real job ID. A retry returns the same job."
+              "description": "Attach the sample clip to the existing draft, then approve the current revision.",
+              "prompt": "Show me the link for this draft so I can attach the clapper clip. After I upload it, read the updated brief and ask me before starting.",
+              "tools_triggered": "get_conversation, finalize_conversation",
+              "expected_behavior": "Return the draft upload link. After the owner uploads, get_conversation reports attached media and the new revision. Finalize only after the owner explicitly approves that revision."
             },
             {
               "description": "Retrieve the mix",

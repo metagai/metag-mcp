@@ -19,6 +19,8 @@ Reload plugins or start a new session. Sign in to the services you use when prom
 
 Try the official MCP Registry entry or follow the private ChatGPT workspace setup. The guide includes a four-second test cut and a recording of its sound brief through delivery. [MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers/com.metag-ai%2Ffengsheng/versions/latest) · [ChatGPT setup and walkthrough](docs/fengsheng-support.md)
 
+For Doubao, Kimi, DeepSeek, Qwen and other function-calling chat models, your host can render the same Fengsheng review action from the server response. Text-only chat users can bring their brief to that page directly. [Model integration](docs/fengsheng-support.md#use-another-chat-model) · [Bring a sound brief](https://metag-ai.com/guide/?new=1#chat-upload)
+
 ## METAG film bridge
 
 **Give your coding agent the ability to make a film — and to hand it to a
